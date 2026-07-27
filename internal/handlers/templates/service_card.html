@@ -1,0 +1,55 @@
+{{ define "service_card" }}
+<div id="service-{{ .Name }}" class="p-4 border rounded-lg bg-gray-50 flex flex-col justify-between">
+    <div class="flex justify-between items-start mb-4">
+        <div>
+            <h3 class="font-semibold text-gray-800">{{ .DisplayName }}</h3>
+            <div class="text-sm text-gray-500 font-mono">{{ .Name }}</div>
+        </div>
+        <div>
+            {{ if eq .Status "Running" }}
+                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                    <svg class="w-1.5 h-1.5 mr-1.5 fill-green-500" viewBox="0 0 6 6" aria-hidden="true"><circle cx="3" cy="3" r="3" /></svg>
+                    Running
+                </span>
+            {{ else }}
+                <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                    <svg class="w-1.5 h-1.5 mr-1.5 fill-gray-400" viewBox="0 0 6 6" aria-hidden="true"><circle cx="3" cy="3" r="3" /></svg>
+                    Stopped
+                </span>
+            {{ end }}
+        </div>
+    </div>
+
+    <div class="flex gap-2 relative">
+        <!-- Overlay spinner indicator during HTMX request -->
+        <div class="htmx-indicator absolute inset-0 bg-gray-50 bg-opacity-75 flex items-center justify-center rounded">
+            <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+
+        {{ if eq .Status "Running" }}
+            <button hx-post="/service/{{ .Name }}/stop"
+                    hx-target="#service-{{ .Name }}"
+                    hx-swap="outerHTML"
+                    class="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 py-1.5 px-3 rounded text-sm font-medium transition-colors">
+                Stop
+            </button>
+            <button hx-post="/service/{{ .Name }}/restart"
+                    hx-target="#service-{{ .Name }}"
+                    hx-swap="outerHTML"
+                    class="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 py-1.5 px-3 rounded text-sm font-medium transition-colors">
+                Restart
+            </button>
+        {{ else }}
+            <button hx-post="/service/{{ .Name }}/start"
+                    hx-target="#service-{{ .Name }}"
+                    hx-swap="outerHTML"
+                    class="flex-1 bg-blue-600 text-white hover:bg-blue-700 py-1.5 px-3 rounded text-sm font-medium transition-colors">
+                Start
+            </button>
+        {{ end }}
+    </div>
+</div>
+{{ end }}
