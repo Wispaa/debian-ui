@@ -24,6 +24,10 @@ type ConfigData struct {
 	SaveURL string
 }
 
+type LogsData struct {
+	Logs []mock.LogEntry
+}
+
 type Handler struct {
 	sm    *mock.ServiceManager
 	tmpl  *template.Template
@@ -131,6 +135,46 @@ func (h *Handler) HandleConfigSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.tmpl.ExecuteTemplate(w, "save_success", nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleLogsPage(w http.ResponseWriter, r *http.Request) {
+	// Generate initial logs without filters
+	logs := mock.GenerateMockLogs("", "", "")
+
+	data := LogsData{
+		Logs: logs,
+	}
+
+	err := h.tmpl.ExecuteTemplate(w, "logs_page", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleMockLogs(w http.ResponseWriter, r *http.Request) {
+	service := r.URL.Query().Get("service")
+	presetDate := r.URL.Query().Get("preset_date")
+	customDate := r.URL.Query().Get("custom_date")
+	customTime := r.URL.Query().Get("custom_time")
+	search := r.URL.Query().Get("search")
+
+	// Determine what date string to pass to the mock (simplified for mockup)
+	dateFilter := presetDate
+	if presetDate == "Custom Date" {
+		dateFilter = customDate + " " + customTime
+	}
+
+	// Generate mock logs based on filters
+	logs := mock.GenerateMockLogs(service, dateFilter, search)
+
+	data := LogsData{
+		Logs: logs,
+	}
+
+	err := h.tmpl.ExecuteTemplate(w, "log_entries", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

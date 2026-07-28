@@ -1,0 +1,108 @@
+{{ define "logs_page" }}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col h-full">
+    <div class="mb-4 border-b pb-4">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">System Logs</h2>
+
+        <!-- Filters Form -->
+        <form hx-get="/api/mock/logs" hx-target="#log-viewer-content" hx-indicator="#logs-spinner" class="flex flex-wrap gap-4 items-end">
+
+            <!-- Service Filter -->
+            <div class="w-full md:w-auto flex-1 min-w-[200px]">
+                <label for="service-filter" class="block text-sm font-medium text-gray-700 mb-1">Service</label>
+                <select id="service-filter" name="service" class="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6">
+                    <option value="All Services">All Services</option>
+                    <option value="sing-box">sing-box</option>
+                    <option value="amnezia-wg">amnezia-wg</option>
+                    <option value="wireguard">wireguard</option>
+                    <option value="openvpn">openvpn</option>
+                    <option value="dnscrypt-proxy">dnscrypt-proxy</option>
+                    <option value="firewalld">firewalld</option>
+                    <option value="systemd">systemd</option>
+                </select>
+            </div>
+
+            <!-- Preset Date Filter -->
+            <div class="w-full md:w-auto flex-1 min-w-[150px]">
+                <label for="preset-date" class="block text-sm font-medium text-gray-700 mb-1">Time Range</label>
+                <select id="preset-date" name="preset_date" class="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6" onchange="toggleCustomDate(this.value)">
+                    <option value="Last 1 Hour">Last 1 Hour</option>
+                    <option value="Last 24 Hours">Last 24 Hours</option>
+                    <option value="Custom Date">Custom Date</option>
+                </select>
+            </div>
+
+            <!-- Custom Date/Time Pickers (Hidden by default) -->
+            <div id="custom-date-container" class="w-full md:w-auto flex gap-2 hidden">
+                <div>
+                    <label for="custom-date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input type="date" id="custom-date" name="custom_date" class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6">
+                </div>
+                <div>
+                    <label for="custom-time" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                    <input type="time" id="custom-time" name="custom_time" class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6">
+                </div>
+            </div>
+
+            <!-- Search Filter -->
+            <div class="w-full md:w-auto flex-1 min-w-[200px]">
+                <label for="search-filter" class="block text-sm font-medium text-gray-700 mb-1">Search Query</label>
+                <input type="text" id="search-filter" name="search" placeholder="e.g. error, failed..." class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6">
+            </div>
+
+            <!-- Apply Button -->
+            <div class="w-full md:w-auto">
+                <button type="submit" class="w-full flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                    <svg id="logs-spinner" class="htmx-indicator animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Log Viewer -->
+    <div class="flex-1 min-h-[400px] relative bg-gray-900 rounded-md border border-gray-700 overflow-hidden flex flex-col">
+        <div id="log-viewer-content" class="flex-1 overflow-x-auto overflow-y-auto p-4 font-mono text-sm text-gray-300">
+            {{ template "log_entries" . }}
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleCustomDate(value) {
+        const container = document.getElementById('custom-date-container');
+        if (value === 'Custom Date') {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+
+    // Ensure we don't attach multiple event listeners if the tab is reloaded
+    if (!window.logsAutoScrollInitialized) {
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'log-viewer-content') {
+                const viewer = document.getElementById('log-viewer-content');
+                viewer.scrollTop = viewer.scrollHeight;
+            }
+        });
+        window.logsAutoScrollInitialized = true;
+    }
+
+    // Initial scroll to bottom
+    setTimeout(() => {
+        const viewer = document.getElementById('log-viewer-content');
+        if(viewer) viewer.scrollTop = viewer.scrollHeight;
+    }, 100);
+</script>
+{{ end }}
+
+{{ define "log_entries" }}
+    {{ range .Logs }}
+        <div class="py-0.5 hover:bg-gray-800 px-1 rounded whitespace-nowrap"><span class="text-gray-500 mr-2">{{ .Timestamp }}</span><span class="text-blue-400 mr-2">[{{ .Service }}]</span>{{ if eq .Level "INFO" }}<span class="text-green-400 font-bold mr-2">{{ .Level }}</span>{{ else if eq .Level "WARN" }}<span class="text-yellow-400 font-bold mr-2">{{ .Level }}</span>{{ else if eq .Level "ERROR" }}<span class="text-red-500 font-bold mr-2">{{ .Level }}</span>{{ end }}<span class="text-gray-200">{{ .Message }}</span></div>
+    {{ else }}
+        <div class="text-gray-500 italic">No logs found matching criteria.</div>
+    {{ end }}
+{{ end }}

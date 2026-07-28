@@ -28,6 +28,10 @@ func main() {
 		}
 	})
 
+	// Logs routes
+	mux.HandleFunc("/page/logs", h.HandleLogsPage)
+	mux.HandleFunc("/api/mock/logs", h.HandleMockLogs)
+
 	mux.HandleFunc("/service/", h.HandleServiceAction)
 
 	log.Println("Starting mock router UI server on :8080...")
