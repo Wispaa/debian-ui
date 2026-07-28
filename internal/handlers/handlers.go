@@ -17,6 +17,13 @@ type DashboardData struct {
 	Firewall   *mock.FirewallInfo
 }
 
+type ConfigData struct {
+	Title   string
+	Status  string
+	Config  string
+	SaveURL string
+}
+
 type Handler struct {
 	sm    *mock.ServiceManager
 	tmpl  *template.Template
@@ -31,7 +38,7 @@ func NewHandler(sm *mock.ServiceManager) *Handler {
 	}
 }
 
-func (h *Handler) HandleDashboard(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleLayout(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
@@ -44,6 +51,86 @@ func (h *Handler) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.tmpl.ExecuteTemplate(w, "layout.html", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleDashboard(w http.ResponseWriter, r *http.Request) {
+	data := DashboardData{
+		Services:   h.sm.GetAll(),
+		Interfaces: mock.GetNetworkInterfaces(),
+		Firewall:   mock.GetFirewallInfo(),
+	}
+
+	err := h.tmpl.ExecuteTemplate(w, "dashboard", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleConfig(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/config/")
+
+	var data ConfigData
+
+	if name == "interfaces" {
+		data = ConfigData{
+			Title:   "Network Interfaces",
+			Config:  mock.GetNetworkConfig(),
+			SaveURL: "/config/interfaces/save",
+		}
+	} else {
+		svc := h.sm.Get(name)
+		if svc == nil {
+			http.NotFound(w, r)
+			return
+		}
+		data = ConfigData{
+			Title:   svc.DisplayName,
+			Status:  string(svc.Status),
+			Config:  svc.Config,
+			SaveURL: "/config/" + svc.Name + "/save",
+		}
+	}
+
+	err := h.tmpl.ExecuteTemplate(w, "config_editor", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleConfigSave(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	configStr := r.Form.Get("config")
+	// The path is /config/{name}/save
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) != 4 {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+	name := parts[2]
+
+	if name == "interfaces" {
+		mock.UpdateNetworkConfig(configStr)
+	} else {
+		if h.sm.UpdateConfig(name, configStr) == nil {
+			http.NotFound(w, r)
+			return
+		}
+	}
+
+	err = h.tmpl.ExecuteTemplate(w, "save_success", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

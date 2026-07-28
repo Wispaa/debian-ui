@@ -19,7 +19,7 @@ func TestHandleDashboard(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(h.HandleDashboard)
+	handler := http.HandlerFunc(h.HandleLayout)
 
 	handler.ServeHTTP(rr, req)
 
@@ -29,11 +29,39 @@ func TestHandleDashboard(t *testing.T) {
 	}
 
 	body := rr.Body.String()
-	if !strings.Contains(body, "Router Dashboard") {
-		t.Errorf("handler returned unexpected body, does not contain 'Router Dashboard'")
+	if !strings.Contains(body, "Admin Dashboard") {
+		t.Errorf("handler returned unexpected body, does not contain 'Admin Dashboard'")
 	}
 	if !strings.Contains(body, "sing-box") {
 		t.Errorf("handler returned unexpected body, does not contain 'sing-box'")
+	}
+}
+
+func TestHandleConfig(t *testing.T) {
+	sm := mock.NewServiceManager()
+	h := handlers.NewHandler(sm)
+
+	req, err := http.NewRequest("GET", "/config/sing-box", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.HandleConfig)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body := rr.Body.String()
+	if !strings.Contains(body, "sing-box Configuration") {
+		t.Errorf("handler returned unexpected body, does not contain 'sing-box Configuration'")
+	}
+	if !strings.Contains(body, "<textarea") {
+		t.Errorf("handler returned unexpected body, does not contain textarea")
 	}
 }
 
