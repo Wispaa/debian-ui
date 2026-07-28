@@ -33,6 +33,7 @@ func NewServiceManager() *ServiceManager {
 			"openvpn":        {Name: "openvpn", DisplayName: "OpenVPN", Status: StatusStopped, Config: "client\ndev tun\nproto udp\nremote 1.2.3.4 1194"},
 			"dnscrypt-proxy": {Name: "dnscrypt-proxy", DisplayName: "DNSCrypt Proxy", Status: StatusRunning, Config: "server_names = ['cloudflare', 'google']\nlisten_addresses = ['127.0.0.1:53']"},
 			"firewalld":      {Name: "firewalld", DisplayName: "Firewalld", Status: StatusRunning, Config: "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<zone>\n  <short>public</short>\n</zone>"},
+			"dnsmasq":        {Name: "dnsmasq", DisplayName: "DNSMasq", Status: StatusRunning, Config: "# Basic dnsmasq configuration for Debian Router\ndomain-needed\nbogus-priv\nlisten-address=127.0.0.1,192.168.1.1\ndhcp-range=192.168.1.100,192.168.1.200,12h\ndhcp-option=option:router,192.168.1.1\ndhcp-option=option:dns-server,192.168.1.1"},
 		},
 	}
 }
@@ -42,7 +43,7 @@ func (sm *ServiceManager) GetAll() []*Service {
 	defer sm.mu.Unlock()
 
 	var list []*Service
-	order := []string{"sing-box", "amnezia-wg", "wireguard", "openvpn", "dnscrypt-proxy", "firewalld"}
+	order := []string{"sing-box", "amnezia-wg", "wireguard", "openvpn", "dnscrypt-proxy", "firewalld", "dnsmasq"}
 	for _, name := range order {
 		if s, ok := sm.services[name]; ok {
 			list = append(list, &Service{Name: s.Name, DisplayName: s.DisplayName, Status: s.Status, Config: s.Config})

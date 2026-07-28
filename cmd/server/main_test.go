@@ -35,6 +35,9 @@ func TestHandleDashboard(t *testing.T) {
 	if !strings.Contains(body, "sing-box") {
 		t.Errorf("handler returned unexpected body, does not contain 'sing-box'")
 	}
+	if !strings.Contains(body, "dnsmasq") {
+		t.Errorf("handler returned unexpected body, does not contain 'dnsmasq'")
+	}
 }
 
 func TestHandleLogs(t *testing.T) {
@@ -311,6 +314,28 @@ func TestHandleConfig(t *testing.T) {
 	}
 	if !strings.Contains(body, "<textarea") {
 		t.Errorf("handler returned unexpected body, does not contain textarea")
+	}
+
+	// Test GET /config/dnsmasq
+	reqDns, err := http.NewRequest("GET", "/config/dnsmasq", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rrDns := httptest.NewRecorder()
+	handler.ServeHTTP(rrDns, reqDns)
+
+	if status := rrDns.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code for dnsmasq: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	bodyDns := rrDns.Body.String()
+	if !strings.Contains(bodyDns, "DNSMasq Configuration") {
+		t.Errorf("handler returned unexpected body, does not contain 'DNSMasq Configuration'")
+	}
+	if !strings.Contains(bodyDns, "dhcp-range") {
+		t.Errorf("handler returned unexpected body, does not contain mock config 'dhcp-range'")
 	}
 }
 
