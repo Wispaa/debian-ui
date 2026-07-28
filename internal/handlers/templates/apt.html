@@ -1,0 +1,188 @@
+{{ define "apt_page" }}
+<div class="space-y-6">
+
+    <!-- Header & Upgrade Section -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between border-b pb-4 mb-4">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">APT Package Manager</h2>
+                <p class="text-sm text-gray-500 mt-1">Manage software packages for Debian 13</p>
+            </div>
+
+            <div id="upgrade-container">
+                <button hx-post="/api/mock/apt/upgrade" hx-target="#upgrade-container" hx-swap="outerHTML"
+                        class="inline-flex items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Check Updates & Upgrade System
+                </button>
+            </div>
+        </div>
+
+        <!-- Manual Upload Section -->
+        <div class="mt-4 bg-gray-50 border border-dashed border-gray-300 rounded-lg p-6 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <div class="mt-4 flex text-sm leading-6 text-gray-600 justify-center">
+                <form hx-post="/api/mock/apt/upload" hx-encoding="multipart/form-data" hx-target="#upload-result" hx-indicator="#upload-spinner" class="flex flex-col items-center">
+                    <label for="file-upload" class="relative cursor-pointer rounded-md bg-white font-semibold text-blue-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-600 focus-within:ring-offset-2 hover:text-blue-500">
+                        <span>Upload a .deb file</span>
+                        <input id="file-upload" name="file" type="file" accept=".deb" class="sr-only">
+                    </label>
+                    <p class="pl-1">or drag and drop</p>
+                    <p class="text-xs leading-5 text-gray-500 mt-1">Debian package files up to 50MB</p>
+                    <div class="mt-4 flex items-center gap-3">
+                        <button type="submit" class="rounded bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                            Install .deb
+                        </button>
+                        <svg id="upload-spinner" class="htmx-indicator animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <div id="upload-result" class="mt-2 text-sm"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Package Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+
+        <!-- Filter -->
+        <div class="mb-4">
+            <div class="relative max-w-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" name="search" placeholder="Search packages..."
+                       hx-get="/api/mock/apt/search" hx-trigger="keyup changed delay:300ms" hx-target="#apt-table-body" hx-indicator="#pkg-spinner"
+                       class="block w-full rounded-md border-0 py-2 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <svg id="pkg-spinner" class="htmx-indicator animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto border rounded-md">
+            <table class="min-w-full divide-y divide-gray-300">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Package Name</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Installed Version</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Latest Version</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                        <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900 sm:pr-6">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="apt-table-body" class="divide-y divide-gray-200 bg-white">
+                    {{ template "apt_entries" . }}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "apt_entries" }}
+    {{ range .Packages }}
+        {{ template "apt_row" . }}
+    {{ else }}
+        <tr>
+            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No packages found.</td>
+        </tr>
+    {{ end }}
+{{ end }}
+
+{{ define "apt_row" }}
+    <tr id="pkg-{{ .Name }}" class="hover:bg-gray-50 transition-colors">
+        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 font-mono">{{ .Name }}</td>
+        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ if .InstalledVersion }}{{ .InstalledVersion }}{{ else }}-{{ end }}</td>
+        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ .LatestVersion }}</td>
+        <td class="whitespace-nowrap px-3 py-4 text-sm">
+            {{ if eq .Status "Installed" }}
+                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Installed</span>
+            {{ else if eq .Status "Update Available" }}
+                <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Update Available</span>
+            {{ else }}
+                <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Available</span>
+            {{ end }}
+        </td>
+        <td class="whitespace-nowrap px-3 py-4 text-sm text-right sm:pr-6 relative">
+            <div class="flex justify-end gap-2 items-center">
+                <!-- Action Spinner -->
+                <svg class="htmx-indicator animate-spin h-4 w-4 text-gray-400 absolute right-full mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+
+                {{ if eq .Status "Installed" }}
+                    <button hx-post="/api/mock/apt/action?name={{ .Name }}&action=remove" hx-target="#pkg-{{ .Name }}" hx-swap="outerHTML" class="text-red-600 hover:text-red-900 font-semibold">Remove</button>
+                {{ else if eq .Status "Update Available" }}
+                    <button hx-post="/api/mock/apt/action?name={{ .Name }}&action=upgrade" hx-target="#pkg-{{ .Name }}" hx-swap="outerHTML" class="text-blue-600 hover:text-blue-900 font-semibold">Upgrade</button>
+                    <button hx-post="/api/mock/apt/action?name={{ .Name }}&action=remove" hx-target="#pkg-{{ .Name }}" hx-swap="outerHTML" class="text-red-600 hover:text-red-900 font-semibold">Remove</button>
+                {{ else }}
+                    <button hx-post="/api/mock/apt/action?name={{ .Name }}&action=install" hx-target="#pkg-{{ .Name }}" hx-swap="outerHTML" class="text-green-600 hover:text-green-900 font-semibold">Install</button>
+                {{ end }}
+            </div>
+        </td>
+    </tr>
+{{ end }}
+
+{{ define "apt_terminal_upgrade" }}
+<div id="upgrade-container" class="w-full mt-4 bg-gray-900 rounded-md p-4 font-mono text-sm text-green-400 overflow-hidden shadow-inner">
+    <div id="apt-terminal-output" class="whitespace-pre-wrap"></div>
+</div>
+<script>
+    (function() {
+        const lines = [
+            "Hit:1 http://deb.debian.org/debian bookworm InRelease",
+            "Get:2 http://security.debian.org/debian-security bookworm-security InRelease [48.0 kB]",
+            "Get:3 http://deb.debian.org/debian bookworm-updates InRelease [52.1 kB]",
+            "Fetched 100 kB in 1s (123 kB/s)",
+            "Reading package lists... Done",
+            "Building dependency tree... Done",
+            "Reading state information... Done",
+            "Calculating upgrade... Done",
+            "The following packages will be upgraded:",
+            "  amnezia-wg nginx sing-box",
+            "3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.",
+            "Need to get 10.5 MB of archives.",
+            "After this operation, 1024 kB of additional disk space will be used.",
+            "Get:1 http://deb.debian.org/debian bookworm/main amd64 nginx amd64 1.24.0 [1,024 kB]",
+            "Get:2 http://deb.debian.org/debian bookworm/main amd64 sing-box amd64 1.9.0-rc [9,000 kB]",
+            "Get:3 http://deb.debian.org/debian bookworm/main amd64 amnezia-wg amd64 1.1.0 [476 kB]",
+            "Fetched 10.5 MB in 1s (10.5 MB/s)",
+            "Preparing to unpack .../nginx_1.24.0_amd64.deb ...",
+            "Unpacking nginx (1.24.0) over (1.22.1-9) ...",
+            "Setting up nginx (1.24.0) ...",
+            "Processing triggers for systemd (252.17-1~deb12u1) ...",
+            "Upgrade complete."
+        ];
+
+        let output = document.getElementById('apt-terminal-output');
+        let index = 0;
+
+        function typeLine() {
+            if (index < lines.length) {
+                output.textContent += lines[index] + "\n";
+                index++;
+                setTimeout(typeLine, Math.random() * 200 + 50); // Simulate typing delay
+            } else {
+                // Once done, trigger a reload of the packages table
+                htmx.ajax('GET', '/api/mock/apt/search', {target: '#apt-table-body'});
+            }
+        }
+
+        // Start typing
+        typeLine();
+    })();
+</script>
+{{ end }}
+
+{{ define "upload_success" }}
+<span class="text-green-600 font-medium">.deb package installed successfully! (Mock)</span>
+{{ end }}

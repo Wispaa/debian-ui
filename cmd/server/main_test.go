@@ -163,6 +163,57 @@ func TestHandleSystem(t *testing.T) {
 	}
 }
 
+func TestHandleApt(t *testing.T) {
+	sm := mock.NewServiceManager()
+	h := handlers.NewHandler(sm)
+
+	// Test GET /page/apt
+	req, err := http.NewRequest("GET", "/page/apt", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.HandleAptPage)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body := rr.Body.String()
+	if !strings.Contains(body, "APT Package Manager") {
+		t.Errorf("handler returned unexpected body, does not contain 'APT Package Manager'")
+	}
+	if !strings.Contains(body, "Upload a .deb file") {
+		t.Errorf("handler returned unexpected body, does not contain upload section")
+	}
+
+	// Test GET /api/mock/apt/search
+	req2, err := http.NewRequest("GET", "/api/mock/apt/search?search=curl", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr2 := httptest.NewRecorder()
+	handler2 := http.HandlerFunc(h.HandleMockAptSearch)
+	handler2.ServeHTTP(rr2, req2)
+
+	if status := rr2.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body2 := rr2.Body.String()
+	if !strings.Contains(body2, "curl") {
+		t.Errorf("handler returned unexpected body, missing 'curl'")
+	}
+	if strings.Contains(body2, "sing-box") {
+		t.Errorf("handler returned unexpected body, contains 'sing-box' but shouldn't")
+	}
+}
+
 func TestHandleConfig(t *testing.T) {
 	sm := mock.NewServiceManager()
 	h := handlers.NewHandler(sm)

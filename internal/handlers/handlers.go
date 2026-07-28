@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"router-ui/internal/mock"
 	"strings"
+	"time"
 )
 
 //go:embed templates/*.html
@@ -30,6 +31,10 @@ type LogsData struct {
 
 type SystemData struct {
 	Units []mock.SystemUnit
+}
+
+type AptData struct {
+	Packages []*mock.Package
 }
 
 type Handler struct {
@@ -209,6 +214,84 @@ func (h *Handler) HandleMockSystem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.tmpl.ExecuteTemplate(w, "system_entries", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleAptPage(w http.ResponseWriter, r *http.Request) {
+	packages := mock.GetPackages("")
+
+	data := AptData{
+		Packages: packages,
+	}
+
+	err := h.tmpl.ExecuteTemplate(w, "apt_page", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleMockAptSearch(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("search")
+	packages := mock.GetPackages(search)
+
+	data := AptData{
+		Packages: packages,
+	}
+
+	err := h.tmpl.ExecuteTemplate(w, "apt_entries", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleMockAptAction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	name := r.URL.Query().Get("name")
+	action := r.URL.Query().Get("action")
+
+	pkg := mock.ActionPackage(name, action)
+	if pkg == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	err := h.tmpl.ExecuteTemplate(w, "apt_row", pkg)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleMockAptUpload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Simulate upload and dpkg delay
+	time.Sleep(1500 * time.Millisecond)
+
+	err := h.tmpl.ExecuteTemplate(w, "upload_success", nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleMockAptUpgrade(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Tell mock layer to update all packages (this takes 2 seconds internally)
+	mock.SimulateFullUpgrade()
+
+	err := h.tmpl.ExecuteTemplate(w, "apt_terminal_upgrade", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
