@@ -42,6 +42,10 @@ type TerminalResponseData struct {
 	Output  string
 }
 
+type DHCPData struct {
+	Leases []*mock.DHCPLease
+}
+
 type Handler struct {
 	sm    *mock.ServiceManager
 	tmpl  *template.Template
@@ -330,6 +334,59 @@ func (h *Handler) HandleMockTerminalExec(w http.ResponseWriter, r *http.Request)
 	}
 
 	err = h.tmpl.ExecuteTemplate(w, "terminal_response", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleDHCPPage(w http.ResponseWriter, r *http.Request) {
+	leases := mock.GetDHCPLeases("")
+	data := DHCPData{Leases: leases}
+	err := h.tmpl.ExecuteTemplate(w, "dhcp_page", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleMockDHCPSearch(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("search")
+	leases := mock.GetDHCPLeases(search)
+	data := DHCPData{Leases: leases}
+	err := h.tmpl.ExecuteTemplate(w, "dhcp_entries", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleMockDHCPAction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	ip := r.Form.Get("ip")
+	action := r.Form.Get("action")
+
+	lease := mock.ActionDHCPLease(ip, action)
+
+	if action == "revoke" {
+		// Just return 200 OK with empty body, the hx-swap="outerHTML" will remove the row
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if lease == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	err = h.tmpl.ExecuteTemplate(w, "dhcp_row", lease)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

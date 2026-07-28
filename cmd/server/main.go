@@ -47,6 +47,11 @@ func main() {
 	mux.HandleFunc("/page/terminal", h.HandleTerminalPage)
 	mux.HandleFunc("/api/mock/terminal/exec", h.HandleMockTerminalExec)
 
+	// DHCP routes
+	mux.HandleFunc("/page/dhcp", h.HandleDHCPPage)
+	mux.HandleFunc("/api/mock/dhcp/search", h.HandleMockDHCPSearch)
+	mux.HandleFunc("/api/mock/dhcp/action", h.HandleMockDHCPAction)
+
 	mux.HandleFunc("/service/", h.HandleServiceAction)
 
 	log.Println("Starting mock router UI server on :8080...")

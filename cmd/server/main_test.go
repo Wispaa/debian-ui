@@ -289,6 +289,79 @@ func TestHandleTerminal(t *testing.T) {
 	}
 }
 
+func TestHandleDHCP(t *testing.T) {
+	sm := mock.NewServiceManager()
+	h := handlers.NewHandler(sm)
+
+	// Test GET /page/dhcp
+	req, err := http.NewRequest("GET", "/page/dhcp", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.HandleDHCPPage)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body := rr.Body.String()
+	if !strings.Contains(body, "DHCP Leases") {
+		t.Errorf("handler returned unexpected body, does not contain 'DHCP Leases'")
+	}
+	if !strings.Contains(body, "192.168.1.100") {
+		t.Errorf("handler returned unexpected body, does not contain mock lease 192.168.1.100")
+	}
+
+	// Test GET /api/mock/dhcp/search
+	req2, err := http.NewRequest("GET", "/api/mock/dhcp/search?search=Laptop", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr2 := httptest.NewRecorder()
+	handler2 := http.HandlerFunc(h.HandleMockDHCPSearch)
+	handler2.ServeHTTP(rr2, req2)
+
+	if status := rr2.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body2 := rr2.Body.String()
+	if !strings.Contains(body2, "Jules-Laptop") {
+		t.Errorf("handler returned unexpected body, missing Jules-Laptop")
+	}
+	if strings.Contains(body2, "Smart-TV") {
+		t.Errorf("handler returned unexpected body, contains Smart-TV but shouldn't")
+	}
+
+	// Test POST /api/mock/dhcp/action (Make Static)
+	form := strings.NewReader("ip=192.168.1.100&action=static")
+	req3, err := http.NewRequest("POST", "/api/mock/dhcp/action", form)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req3.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	rr3 := httptest.NewRecorder()
+	handler3 := http.HandlerFunc(h.HandleMockDHCPAction)
+	handler3.ServeHTTP(rr3, req3)
+
+	if status := rr3.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body3 := rr3.Body.String()
+	if !strings.Contains(body3, "Static") {
+		t.Errorf("handler returned unexpected body, lease not marked as Static")
+	}
+}
+
 func TestHandleConfig(t *testing.T) {
 	sm := mock.NewServiceManager()
 	h := handlers.NewHandler(sm)
