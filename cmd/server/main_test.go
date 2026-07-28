@@ -86,6 +86,83 @@ func TestHandleLogs(t *testing.T) {
 	}
 }
 
+func TestHandleSystem(t *testing.T) {
+	sm := mock.NewServiceManager()
+	h := handlers.NewHandler(sm)
+
+	// Test GET /page/system
+	req, err := http.NewRequest("GET", "/page/system", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.HandleSystemPage)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body := rr.Body.String()
+	if !strings.Contains(body, "System Services") {
+		t.Errorf("handler returned unexpected body, does not contain 'System Services'")
+	}
+	// Initial load should have firewalld.service
+	if !strings.Contains(body, "firewalld.service") {
+		t.Errorf("handler returned unexpected body, does not contain 'firewalld.service'")
+	}
+
+	// Test GET /api/mock/system with search filter
+	req2, err := http.NewRequest("GET", "/api/mock/system?search=openvpn", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr2 := httptest.NewRecorder()
+	handler2 := http.HandlerFunc(h.HandleMockSystem)
+	handler2.ServeHTTP(rr2, req2)
+
+	if status := rr2.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body2 := rr2.Body.String()
+	// Should contain openvpn but not firewalld
+	if !strings.Contains(body2, "openvpn.service") {
+		t.Errorf("handler returned unexpected body, missing 'openvpn.service'")
+	}
+	if strings.Contains(body2, "firewalld.service") {
+		t.Errorf("handler returned unexpected body, contains 'firewalld.service' but shouldn't")
+	}
+
+	// Test GET /api/mock/system with state filter
+	req3, err := http.NewRequest("GET", "/api/mock/system?state=failed", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr3 := httptest.NewRecorder()
+	handler3 := http.HandlerFunc(h.HandleMockSystem)
+	handler3.ServeHTTP(rr3, req3)
+
+	if status := rr3.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body3 := rr3.Body.String()
+	// Should contain openvpn (failed) but not sing-box (active)
+	if !strings.Contains(body3, "openvpn.service") {
+		t.Errorf("handler returned unexpected body, missing 'openvpn.service' when filtering for failed")
+	}
+	if strings.Contains(body3, "sing-box.service") {
+		t.Errorf("handler returned unexpected body, contains 'sing-box.service' but shouldn't when filtering for failed")
+	}
+}
+
 func TestHandleConfig(t *testing.T) {
 	sm := mock.NewServiceManager()
 	h := handlers.NewHandler(sm)

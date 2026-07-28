@@ -28,6 +28,10 @@ type LogsData struct {
 	Logs []mock.LogEntry
 }
 
+type SystemData struct {
+	Units []mock.SystemUnit
+}
+
 type Handler struct {
 	sm    *mock.ServiceManager
 	tmpl  *template.Template
@@ -175,6 +179,36 @@ func (h *Handler) HandleMockLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.tmpl.ExecuteTemplate(w, "log_entries", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleSystemPage(w http.ResponseWriter, r *http.Request) {
+	// Generate initial units without filters
+	units := mock.GetSystemUnits("", "All")
+
+	data := SystemData{
+		Units: units,
+	}
+
+	err := h.tmpl.ExecuteTemplate(w, "system_page", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleMockSystem(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("search")
+	state := r.URL.Query().Get("state")
+
+	units := mock.GetSystemUnits(search, state)
+
+	data := SystemData{
+		Units: units,
+	}
+
+	err := h.tmpl.ExecuteTemplate(w, "system_entries", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
