@@ -43,6 +43,10 @@ func main() {
 	mux.HandleFunc("/api/mock/apt/upload", h.HandleMockAptUpload)
 	mux.HandleFunc("/api/mock/apt/upgrade", h.HandleMockAptUpgrade)
 
+	// Terminal routes
+	mux.HandleFunc("/page/terminal", h.HandleTerminalPage)
+	mux.HandleFunc("/api/mock/terminal/exec", h.HandleMockTerminalExec)
+
 	mux.HandleFunc("/service/", h.HandleServiceAction)
 
 	log.Println("Starting mock router UI server on :8080...")

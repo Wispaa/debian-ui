@@ -214,6 +214,78 @@ func TestHandleApt(t *testing.T) {
 	}
 }
 
+func TestHandleTerminal(t *testing.T) {
+	sm := mock.NewServiceManager()
+	h := handlers.NewHandler(sm)
+
+	// Test GET /page/terminal
+	req, err := http.NewRequest("GET", "/page/terminal", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(h.HandleTerminalPage)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body := rr.Body.String()
+	if !strings.Contains(body, "Debian GNU/Linux 13") {
+		t.Errorf("handler returned unexpected body, does not contain MOTD banner")
+	}
+
+	// Test POST /api/mock/terminal/exec
+	form := strings.NewReader("command=ping")
+	req2, err := http.NewRequest("POST", "/api/mock/terminal/exec", form)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req2.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	rr2 := httptest.NewRecorder()
+	handler2 := http.HandlerFunc(h.HandleMockTerminalExec)
+	handler2.ServeHTTP(rr2, req2)
+
+	if status := rr2.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body2 := rr2.Body.String()
+	if !strings.Contains(body2, "ping") {
+		t.Errorf("handler returned unexpected body, missing echoed command")
+	}
+	if !strings.Contains(body2, "PING 8.8.8.8") {
+		t.Errorf("handler returned unexpected body, missing mock ping output")
+	}
+
+	// Test POST /api/mock/terminal/exec (unrecognized command)
+	form3 := strings.NewReader("command=foo")
+	req3, err := http.NewRequest("POST", "/api/mock/terminal/exec", form3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req3.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	rr3 := httptest.NewRecorder()
+	handler3 := http.HandlerFunc(h.HandleMockTerminalExec)
+	handler3.ServeHTTP(rr3, req3)
+
+	if status := rr3.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	body3 := rr3.Body.String()
+	if !strings.Contains(body3, "foo: command not found") {
+		t.Errorf("handler returned unexpected body, missing command not found error")
+	}
+}
+
 func TestHandleConfig(t *testing.T) {
 	sm := mock.NewServiceManager()
 	h := handlers.NewHandler(sm)

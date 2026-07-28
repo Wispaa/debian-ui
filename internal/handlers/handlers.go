@@ -37,6 +37,11 @@ type AptData struct {
 	Packages []*mock.Package
 }
 
+type TerminalResponseData struct {
+	Command string
+	Output  string
+}
+
 type Handler struct {
 	sm    *mock.ServiceManager
 	tmpl  *template.Template
@@ -292,6 +297,39 @@ func (h *Handler) HandleMockAptUpgrade(w http.ResponseWriter, r *http.Request) {
 	mock.SimulateFullUpgrade()
 
 	err := h.tmpl.ExecuteTemplate(w, "apt_terminal_upgrade", nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleTerminalPage(w http.ResponseWriter, r *http.Request) {
+	err := h.tmpl.ExecuteTemplate(w, "terminal_page", nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleMockTerminalExec(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	cmd := r.Form.Get("command")
+	output := mock.ExecuteCommand(cmd)
+
+	data := TerminalResponseData{
+		Command: cmd,
+		Output:  output,
+	}
+
+	err = h.tmpl.ExecuteTemplate(w, "terminal_response", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
